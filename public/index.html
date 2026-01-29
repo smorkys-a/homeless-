@@ -1,29 +1,106 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sample HTML Page</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>База пациентов</title>
+  <style>
+    body { font-family: Arial; max-width: 1000px; margin: 30px auto; padding: 0 12px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    input { padding:10px; flex:1; min-width:180px; }
+    button { padding:10px 14px; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; margin-top:16px; }
+    th,td { border:1px solid #ddd; padding:10px; text-align:left; }
+    th { background:#f5f5f5; }
+    .card { border:1px solid #eee; padding:14px; border-radius:10px; margin-top:14px; }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Welcome to My Sample Page</h1>
-    </header>
-    
-    <section>
-        <p>This is a paragraph of text on add more content here.</p>
-        
-        <a href="https://www.example.com" target="_blank">Visit Example Website</a>
-    </section>
-    
-    <section>
-        <h2>Image Section</h2>
-        <img src="https://via.placeholder.com/150" alt="Placeholder Image">
-    </section>
+  <h1>База пациентов</h1>
 
-    <footer>
-        <p>Created by Your Name. All rights reserved.</p>
-    </footer>
+  <div class="card">
+    <h3>Поиск</h3>
+    <div class="row">
+      <input id="search" placeholder="Искать по ФИО..." />
+      <button onclick="loadPatients()">Найти</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Добавить пациента</h3>
+    <div class="row">
+      <input id="full_name" placeholder="ФИО *" />
+      <input id="birth_date" placeholder="Дата рождения (YYYY-MM-DD)" />
+      <input id="phone" placeholder="Телефон" />
+      <input id="diagnosis" placeholder="Диагноз" />
+      <button onclick="addPatient()">Добавить</button>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>ФИО</th>
+        <th>Дата рождения</th>
+        <th>Телефон</th>
+        <th>Диагноз</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+<script>
+async function loadPatients() {
+  const q = document.getElementById("search").value.trim();
+  const res = await fetch("/api/patients?q=" + encodeURIComponent(q));
+  const data = await res.json();
+
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  data.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.id}</td>
+      <td>${escapeHtml(p.full_name)}</td>
+      <td>${p.birth_date ?? ""}</td>
+      <td>${escapeHtml(p.phone ?? "")}</td>
+      <td>${escapeHtml(p.diagnosis ?? "")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function addPatient() {
+  const body = {
+    full_name: document.getElementById("full_name").value.trim(),
+    birth_date: document.getElementById("birth_date").value.trim(),
+    phone: document.getElementById("phone").value.trim(),
+    diagnosis: document.getElementById("diagnosis").value.trim(),
+  };
+
+  if (!body.full_name) return alert("ФИО обязательно");
+
+  const res = await fetch("/api/patients", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    return alert("Ошибка: " + (err.error || "unknown"));
+  }
+
+  ["full_name","birth_date","phone","diagnosis"].forEach(id => document.getElementById(id).value = "");
+  loadPatients();
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+loadPatients();
+</script>
 </body>
 </html>
-
